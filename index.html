@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Culture Voices - The Creator's Voice Engine</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="logo.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
+    <link rel="shortcut icon" href="logo.png">
+
+    <!-- Google Fonts: Space Grotesk for that slim, tech feel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'base-cream': '#FFFDF5',
+                        'neon-purple': '#a855f7',
+                        'slime-green': '#bef264',
+                        'bubble-pink': '#f472b6',
+                        'electric-blue': '#3b82f6',
+                        'dark-text': '#18181b',
+                    },
+                    fontFamily: {
+                        sans: ['Space Grotesk', 'sans-serif'],
+                        heading: ['Space Grotesk', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'hard': '4px 4px 0px 0px rgba(0,0,0,1)',
+                        'hard-sm': '2px 2px 0px 0px rgba(0,0,0,1)',
+                        'hard-hover': '1px 1px 0px 0px rgba(0,0,0,1)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #FFFDF5;
+            color: #18181b;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            font-weight: 300;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FFFDF5;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #18181b;
+            border-radius: 0px;
+            border: 1px solid #FFFDF5;
+        }
+
+        .marquee-container {
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .marquee-content {
+            display: inline-block;
+            animation: marquee 20s linear infinite;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .carousel-track {
+            animation: scroll 30s linear infinite;
+        }
+        @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(calc(-304px * 5)); }
+        }
+
+        .phone-card {
+            width: 280px;
+            height: 500px;
+            flex-shrink: 0;
+            border-radius: 1rem;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+            border: 2px solid #000;
+        }
+        .phone-card:hover {
+            transform: scale(1.02) translateY(-10px);
+            z-index: 10;
+            box-shadow: 8px 8px 0px 0px rgba(0,0,0,1);
+        }
+        .tiktok-ui-right {
+            position: absolute;
+            right: 15px;
+            bottom: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            color: white;
+        }
+        .tiktok-ui-bottom {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            right: 60px;
+            color: white;
+        }
+
+        .cursor-follow {
+            pointer-events: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 15px;
+            height: 15px;
+            border: 1px solid #18181b;
+            border-radius: 50%;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        @media (hover: none) {
+            .cursor-follow { display: none; }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.active {
+            display: flex;
+        }
+    </style>
+</head>
+<body class="relative">
+
+    <!-- Custom Cursor -->
+    <div class="cursor-follow hidden md:block"></div>
+
+    <!-- Voice Clone Modal -->
+    <div id="clone-modal" class="modal">
+        <div class="bg-white border-2 border-black rounded-3xl p-8 max-w-2xl w-full mx-4 shadow-[10px_10px_0px_0px_#000] max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-3">
+                    <img src="logo.png" alt="Culture Voices" class="h-10 w-auto">
+                    <h3 class="font-heading font-medium text-3xl">Clone Your Voice</h3>
+                </div>
+                <button onclick="closeCloneModal()" class="text-2xl hover:text-neon-purple transition-colors">&times;</button>
+            </div>
+
+            <div id="clone-step-1" class="clone-step">
+                <p class="font-sans font-light text-gray-600 mb-6">Provide at least 30 seconds of clear audio of your voice.</p>
+
+                <!-- Recording Tips Collapsible -->
+                <details class="mb-6 border-2 border-black rounded-xl overflow-hidden">
+                    <summary class="bg-gray-50 px-4 py-3 cursor-pointer font-heading font-medium flex items-center gap-2 hover:bg-gray-100 transition-colors">
+                        <i class="fa-solid fa-lightbulb text-yellow-500"></i>
+                        Recording Tips for Best Quality
+                        <i class="fa-solid fa-chevron-down ml-auto text-sm"></i>
+                    </summary>
+                    <div class="p-4 bg-white space-y-2">
+                        <div class="flex items-start gap-3">
+                            <i class="fa-solid fa-volume-xmark text-gray-400 mt-1"></i>
+                            <p class="text-sm text-gray-600 font-light">Use a quiet environment with no background noise</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <i class="fa-solid fa-microphone-lines text-gray-400 mt-1"></i>
+                            <p class="text-sm text-gray-600 font-light">Speak naturally with varied intonation and expression</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <i class="fa-solid fa-clock text-gray-400 mt-1"></i>
+                            <p class="text-sm text-gray-600 font-light">30-45 seconds is ideal for best results</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <i class="fa-solid fa-ban text-gray-400 mt-1"></i>
+                            <p class="text-sm text-gray-600 font-light">Avoid music, TV, or other audio in the background</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <i class="fa-solid fa-layer-group text-gray-400 mt-1"></i>
+                            <p class="text-sm text-gray-600 font-light">Multiple samples improve quality (coming soon)</p>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Tab Buttons -->
+                <div class="flex gap-2 mb-6">
+                    <button id="upload-tab-btn" onclick="switchToUpload()" class="flex-1 py-3 px-4 font-heading font-medium border-2 border-black rounded-xl bg-black text-white transition-all">
+                        <i class="fa-solid fa-upload mr-2"></i> Upload File
+                    </button>
+                    <button id="record-tab-btn" onclick="switchToRecord()" class="flex-1 py-3 px-4 font-heading font-medium border-2 border-black rounded-xl bg-white text-black hover:bg-gray-50 transition-all">
+                        <i class="fa-solid fa-microphone mr-2"></i> Record Voice
+                    </button>
+                </div>
+
+                <!-- Upload Section -->
+                <div id="upload-section">
+                    <div class="border-2 border-dashed border-black rounded-2xl p-8 text-center mb-6 hover:bg-gray-50 transition-colors cursor-pointer" id="upload-zone">
+                        <i class="fa-solid fa-cloud-arrow-up text-5xl text-gray-300 mb-4 pointer-events-none"></i>
+                        <p class="font-heading font-medium mb-2 pointer-events-none">Drop audio file here or click to upload</p>
+                        <p class="text-sm text-gray-500 font-light pointer-events-none">MP3, WAV, M4A (max 10MB)</p>
+                        <input type="file" id="voice-file" accept="audio/*" class="hidden">
+                    </div>
+                </div>
+
+                <!-- Record Section -->
+                <div id="record-section" class="hidden">
+                    <div class="border-2 border-black rounded-2xl p-8 text-center mb-6 bg-gray-50">
+                        <div id="record-idle" class="record-state">
+                            <i class="fa-solid fa-microphone text-5xl text-gray-300 mb-4"></i>
+                            <p class="font-heading font-medium mb-2">Ready to record your voice</p>
+                            <p class="text-sm text-gray-500 font-light mb-4">Click the button below to start recording (30 seconds)</p>
+                        </div>
+
+                        <div id="record-active" class="record-state hidden">
+                            <div class="flex justify-center items-center gap-2 mb-4">
+                                <div class="w-2 h-8 bg-red-500 rounded-full animate-pulse"></div>
+                                <div class="w-2 h-12 bg-red-500 rounded-full animate-pulse" style="animation-delay: 0.1s"></div>
+                                <div class="w-2 h-16 bg-red-500 rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+                                <div class="w-2 h-12 bg-red-500 rounded-full animate-pulse" style="animation-delay: 0.3s"></div>
+                                <div class="w-2 h-8 bg-red-500 rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
+                            </div>
+                            <p class="font-heading font-medium text-2xl mb-2">Recording...</p>
+                            <p class="text-3xl font-mono font-bold text-red-500" id="record-timer">00:30</p>
+                            <p class="text-sm text-gray-500 font-light mt-2">Speak clearly into your microphone</p>
+                        </div>
+
+                        <div id="record-complete" class="record-state hidden">
+                            <i class="fa-solid fa-check-circle text-5xl text-slime-green mb-4"></i>
+                            <p class="font-heading font-medium mb-2">Recording complete!</p>
+                            <p class="text-sm text-gray-500 font-light mb-4" id="record-duration">30 seconds recorded</p>
+
+                            <!-- Audio Playback -->
+                            <div class="bg-white border-2 border-black rounded-xl p-4 mb-4">
+                                <audio id="recorded-audio-playback" controls class="w-full">
+                                    Your browser does not support the audio element.
+                                </audio>
+                            </div>
+
+                            <p class="text-xs text-gray-500 font-light">
+                                <i class="fa-solid fa-play-circle mr-1"></i> Listen to your recording before continuing
+                            </p>
+                        </div>
+
+                        <button onclick="toggleRecording()" id="record-btn" class="mt-4 bg-red-500 text-white font-heading font-medium text-lg py-3 px-8 rounded-full shadow-hard hover:bg-red-600 transition-all">
+                            <i class="fa-solid fa-circle mr-2"></i> Start Recording
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Transcription Text Field -->
+                <div class="mb-6" id="transcription-container">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="font-heading font-medium text-sm block">
+                            Transcription Text
+                            <span class="text-gray-400 font-light" id="transcription-label-hint">(Auto-detected or enter manually)</span>
+                        </label>
+                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium" id="transcription-badge">
+                            <i class="fa-solid fa-magic-wand-sparkles mr-1"></i>AI Transcription
+                        </span>
+                    </div>
+                    <textarea
+                        id="transcription-text"
+                        rows="3"
+                        maxlength="500"
+                        placeholder="Upload audio or record to auto-transcribe... or type what you said manually"
+                        class="w-full border-2 border-black rounded-xl px-4 py-3 font-sans font-light focus:outline-none focus:ring-2 focus:ring-slime-green resize-none transition-all"
+                    ></textarea>
+                    <div class="flex justify-between items-center mt-2">
+                        <p class="text-xs text-gray-500 font-light">
+                            <i class="fa-solid fa-lightbulb text-yellow-500 mr-1"></i>
+                            Accurate transcription significantly improves voice clone quality
+                        </p>
+                        <span class="text-xs text-gray-400 font-mono" id="transcription-char-count">0/500</span>
+                    </div>
+                </div>
+
+                <div id="upload-progress" class="hidden mb-6">
+                    <div class="bg-gray-200 rounded-full h-4 border-2 border-black overflow-hidden">
+                        <div id="progress-bar" class="bg-neon-purple h-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="progress-text" class="text-sm text-gray-600 mt-2 text-center font-light">Uploading...</p>
+                </div>
+
+                <button onclick="uploadVoice()" id="upload-btn" class="w-full bg-black text-white font-heading font-medium text-lg py-4 rounded-xl shadow-hard hover:bg-neon-purple transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Continue to Step 2
+                </button>
+            </div>
+
+            <div id="clone-step-2" class="clone-step hidden">
+                <p class="font-sans font-light text-gray-600 mb-6">Your voice has been cloned! Now type what you want to say.</p>
+
+                <div class="mb-6">
+                    <label class="font-medium font-heading text-sm uppercase mb-2 block">Voice Model ID</label>
+                    <input type="text" id="model-id" readonly class="w-full border-2 border-black rounded-xl px-4 py-3 font-mono text-sm bg-gray-50">
+                </div>
+
+                <div class="mb-6">
+                    <label class="font-medium font-heading text-sm uppercase mb-2 block">Your Script</label>
+                    <textarea id="script-text" rows="6" placeholder="Type what you want your cloned voice to say..." class="w-full border-2 border-black rounded-xl px-4 py-3 font-sans font-light focus:outline-none focus:ring-2 focus:ring-slime-green resize-none"></textarea>
+                    <p class="text-sm text-gray-500 mt-2 font-light">Character count: <span id="char-count">0</span></p>
+                </div>
+
+                <button onclick="generateSpeech()" id="generate-btn" class="w-full bg-black text-white font-heading font-medium text-lg py-4 rounded-xl shadow-hard hover:bg-slime-green hover:text-black transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-microphone mr-2"></i> Generate Voice
+                </button>
+            </div>
+
+            <div id="clone-step-3" class="clone-step hidden">
+                <div class="text-center mb-6">
+                    <div class="inline-block bg-slime-green border-2 border-black rounded-full p-6 mb-4">
+                        <i class="fa-solid fa-check text-4xl"></i>
+                    </div>
+                    <h4 class="font-heading font-medium text-2xl mb-2">Voice Generated!</h4>
+                    <p class="font-sans font-light text-gray-600">Your cloned voice is ready to download.</p>
+                </div>
+
+                <div class="bg-gray-50 border-2 border-black rounded-2xl p-6 mb-6">
+                    <audio id="generated-audio" controls class="w-full mb-4"></audio>
+                    <button onclick="downloadAudio()" class="w-full bg-electric-blue text-white font-heading font-medium py-3 rounded-xl shadow-hard hover:shadow-hard-hover transition-all">
+                        <i class="fa-solid fa-download mr-2"></i> Download MP3
+                    </button>
+                </div>
+
+                <button onclick="resetCloneModal()" class="w-full bg-white border-2 border-black text-black font-heading font-medium py-3 rounded-xl shadow-hard hover:bg-gray-50 transition-all">
+                    Clone Another Voice
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onboarding Sign Up Modal -->
+    <div id="signup-modal" class="modal">
+        <div class="bg-white border-2 border-black rounded-3xl p-8 max-w-lg w-full mx-4 shadow-[10px_10px_0px_0px_#000] max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-3">
+                    <img src="logo.png" alt="Culture Voices" class="h-10 w-auto">
+                    <h3 class="font-heading font-medium text-3xl">Get Started</h3>
+                </div>
+                <button onclick="closeSignupModal()" class="text-2xl hover:text-neon-purple transition-colors">&times;</button>
+            </div>
+
+            <div id="signup-step-1" class="signup-step">
+                <p class="font-sans font-light text-gray-600 mb-6">Join thousands of creators using AI-powered voice cloning.</p>
+
+                <form onsubmit="handleSignup(event)" class="space-y-4">
+                    <!-- Full Name -->
+                    <div>
+                        <label class="font-heading font-medium text-sm mb-2 block">Full Name</label>
+                        <input type="text" id="signup-name" placeholder="Alex Johnson" class="w-full border-2 border-black rounded-xl px-4 py-3 font-sans font-light focus:outline-none focus:ring-2 focus:ring-slime-green transition-all" required>
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label class="font-heading font-medium text-sm mb-2 block">Email Address</label>
+                        <input type="email" id="signup-email" placeholder="alex@example.com" class="w-full border-2 border-black rounded-xl px-4 py-3 font-sans font-light focus:outline-none focus:ring-2 focus:ring-slime-green transition-all" required>
+                    </div>
+
+                    <!-- Password -->
+                    <div>
+                        <label class="font-heading font-medium text-sm mb-2 block">Password</label>
+                        <input type="password" id="signup-password" placeholder="••••••••" class="w-full border-2 border-black rounded-xl px-4 py-3 font-sans font-light focus:outline-none focus:ring-2 focus:ring-slime-green transition-all" required minlength="8">
+                        <p class="text-xs text-gray-500 mt-1 font-light">Minimum 8 characters</p>
+                    </div>
+
+                    <!-- Creator Type -->
+                    <div>
+                        <label class="font-heading font-medium text-sm mb-2 block">I'm a...</label>
+                        <select id="signup-type" class="w-full border-2 border-black rounded-xl px-4 py-3 font-sans font-light focus:outline-none focus:ring-2 focus:ring-slime-green transition-all bg-white appearance-none cursor-pointer" required>
+                            <option value="">Select your creator type</option>
+                            <option value="tiktok">TikTok Creator</option>
+                            <option value="youtube">YouTuber</option>
+                            <option value="streamer">Streamer</option>
+                            <option value="podcaster">Podcaster</option>
+                            <option value="content">Content Creator</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Terms & Conditions -->
+                    <div class="flex items-start gap-3">
+                        <input type="checkbox" id="signup-terms" class="mt-1 w-5 h-5 border-2 border-black rounded focus:ring-2 focus:ring-slime-green" required>
+                        <label for="signup-terms" class="text-sm font-light text-gray-600">
+                            I agree to the <a href="#" class="text-black font-medium underline hover:text-neon-purple">Terms of Service</a> and <a href="#" class="text-black font-medium underline hover:text-neon-purple">Privacy Policy</a>
+                        </label>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="w-full bg-black text-white font-heading font-medium text-lg py-4 rounded-xl shadow-hard hover:bg-slime-green hover:text-black hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-hard-hover transition-all mt-6">
+                        Create Account
+                    </button>
+                </form>
+
+                <!-- Already have account -->
+                <p class="text-center text-sm text-gray-600 mt-6 font-light">
+                    Already have an account? <a href="#" onclick="openLoginModal(event)" class="text-black font-medium underline hover:text-neon-purple">Sign In</a>
+                </p>
+            </div>
+
+            <!-- Welcome Step (after signup) -->
+            <div id="signup-step-2" class="signup-step hidden">
+                <div class="text-center mb-6">
+                    <div class="inline-block bg-slime-green border-2 border-black rounded-full p-6 mb-4">
+                        <i class="fa-solid fa-party-horn text-4xl"></i>
+                    </div>
+                    <h4 class="font-heading font-medium text-3xl mb-2">Welcome to Culture Voices!</h4>
+                    <p class="font-sans font-light text-gray-600 mb-6">Your account has been created. Let's set up your voice profile.</p>
+                </div>
+
+                <div class="space-y-4 mb-6">
+                    <div class="flex items-start gap-4 p-4 border-2 border-black rounded-xl">
+                        <div class="w-10 h-10 rounded-full bg-slime-green border-2 border-black flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-microphone text-lg"></i>
+                        </div>
+                        <div>
+                            <h5 class="font-heading font-medium mb-1">Clone Your Voice</h5>
+                            <p class="text-sm font-light text-gray-600">Upload 30 seconds of audio to create your voice model</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-4 p-4 border-2 border-black rounded-xl">
+                        <div class="w-10 h-10 rounded-full bg-electric-blue border-2 border-black flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
+                        </div>
+                        <div>
+                            <h5 class="font-heading font-medium mb-1">Generate Content</h5>
+                            <p class="text-sm font-light text-gray-600">Type any script and hear it in your cloned voice</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-4 p-4 border-2 border-black rounded-xl">
+                        <div class="w-10 h-10 rounded-full bg-neon-purple border-2 border-black flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-download text-lg"></i>
+                        </div>
+                        <div>
+                            <h5 class="font-heading font-medium mb-1">Export & Share</h5>
+                            <p class="text-sm font-light text-gray-600">Download your audio and use it anywhere</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="startCloning()" class="w-full bg-black text-white font-heading font-medium text-lg py-4 rounded-xl shadow-hard hover:bg-slime-green hover:text-black transition-all">
+                    Start Cloning My Voice
+                </button>
+
+                <button onclick="closeSignupModal()" class="w-full bg-white border-2 border-black text-black font-heading font-medium py-3 rounded-xl shadow-hard hover:bg-gray-50 transition-all mt-3">
+                    I'll Do This Later
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 w-full z-50 px-4 py-4 backdrop-blur-md bg-base-cream/90 border-b border-black">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <img src="logo.png" alt="Culture Voices" class="h-12 w-auto">
+            <button onclick="openSignupModal()" class="border border-black bg-transparent text-black px-6 py-2 rounded-full font-medium text-sm hover:bg-black hover:text-white transition-all duration-300">
+                Get Access
+            </button>
+        </div>
+    </nav>
+
+    <!-- Sticky Pill -->
+    <div id="sticky-pill" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transition-transform duration-500">
+        <button onclick="openCloneModal()" class="bg-slime-green border border-black px-6 py-3 rounded-full font-heading font-medium shadow-hard text-sm flex items-center gap-2 hover:scale-105 active:scale-95 transition-all">
+            <i class="fa-solid fa-microphone"></i> Try The Demo
+        </button>
+    </div>
+
+    <!-- SECTION 01: HERO -->
+    <section class="relative min-h-screen flex flex-col justify-center overflow-hidden pt-24 pb-12">
+
+        <div class="relative z-20 text-center mb-12 px-4 pointer-events-none">
+            <div class="hero-badge inline-block bg-white border border-black px-4 py-1 rounded-full mb-6 shadow-hard-sm opacity-0 transform translate-y-4 pointer-events-auto">
+                <span class="font-medium text-xs uppercase tracking-widest text-gray-500">Beta Access Live</span>
+            </div>
+            <h1 class="font-heading font-light text-5xl md:text-8xl leading-[1.1] tracking-tight text-black">
+                <div class="hero-text-line">Clone Your Voice.</div>
+                <div class="hero-text-line-2 font-medium text-gray-400" data-headlines='["Create Faster.", "Scale Content.", "Work Smarter.", "Sound Perfect."]'></div>
+            </h1>
+        </div>
+
+        <!-- Infinite Carousel -->
+        <div class="relative w-full overflow-hidden py-4">
+            <div class="flex gap-6 px-4 w-max carousel-track">
+                <!-- Phone Card 1: Storytime -->
+                <div class="phone-card bg-black shadow-hard group">
+                    <div class="w-full h-full flex items-center justify-center relative overflow-hidden">
+                        <img src="storytime.png" alt="Storyteller" class="absolute inset-0 w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                    </div>
+                    <div class="tiktok-ui-right">
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-heart text-2xl"></i><span class="text-xs font-light">12k</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-comment text-2xl"></i><span class="text-xs font-light">402</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-solid fa-share text-2xl"></i><span class="text-xs font-light">Share</span></div>
+                    </div>
+                    <div class="tiktok-ui-bottom">
+                        <div class="font-medium text-sm mb-1">@scary_stories</div>
+                        <div class="text-xs opacity-80 font-light">Wait for the end... used Culture Voices for the ghost voice #horror</div>
+                    </div>
+                </div>
+
+                <!-- Phone Card 2: Gaming -->
+                <div class="phone-card bg-black shadow-hard">
+                    <div class="w-full h-full flex items-center justify-center relative overflow-hidden">
+                        <img src="gaming.png" alt="Gaming" class="absolute inset-0 w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                    </div>
+                    <div class="tiktok-ui-right">
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-heart text-2xl"></i><span class="text-xs font-light">45k</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-comment text-2xl"></i><span class="text-xs font-light">1.2k</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-solid fa-share text-2xl"></i><span class="text-xs font-light">Share</span></div>
+                    </div>
+                    <div class="tiktok-ui-bottom">
+                        <div class="font-medium text-sm mb-1">@pro_gamer</div>
+                        <div class="text-xs opacity-80 font-light">No mic today so I cloned my voice. Can you tell?</div>
+                    </div>
+                </div>
+
+                <!-- Phone Card 3: Podcast -->
+                <div class="phone-card bg-black shadow-hard">
+                    <div class="w-full h-full flex items-center justify-center relative overflow-hidden">
+                        <img src="podcast.png" alt="Podcast" class="absolute inset-0 w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                    </div>
+                    <div class="tiktok-ui-right">
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-heart text-2xl"></i><span class="text-xs font-light">2k</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-comment text-2xl"></i><span class="text-xs font-light">89</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-solid fa-share text-2xl"></i><span class="text-xs font-light">Share</span></div>
+                    </div>
+                    <div class="tiktok-ui-bottom">
+                        <div class="font-medium text-sm mb-1">@daily_talks</div>
+                        <div class="text-xs opacity-80 font-light">New episode out now! Intro generated with AI.</div>
+                    </div>
+                </div>
+
+                <!-- Phone Card 4: Reaction -->
+                <div class="phone-card bg-black shadow-hard">
+                    <div class="w-full h-full flex items-center justify-center relative overflow-hidden">
+                        <img src="meme-dub.png" alt="Meme Creator" class="absolute inset-0 w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                    </div>
+                    <div class="tiktok-ui-right">
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-heart text-2xl"></i><span class="text-xs font-light">89k</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-comment text-2xl"></i><span class="text-xs font-light">3k</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-solid fa-share text-2xl"></i><span class="text-xs font-light">Share</span></div>
+                    </div>
+                    <div class="tiktok-ui-bottom">
+                        <div class="font-medium text-sm mb-1">@meme_lord</div>
+                        <div class="text-xs opacity-80 font-light">This audio is viral rn. Use the template!</div>
+                    </div>
+                </div>
+
+                <!-- Phone Card 5: ASMR -->
+                <div class="phone-card bg-black shadow-hard">
+                    <div class="w-full h-full flex items-center justify-center relative overflow-hidden">
+                        <img src="crisp-audio.png" alt="Crisp Audio" class="absolute inset-0 w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                    </div>
+                    <div class="tiktok-ui-right">
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-heart text-2xl"></i><span class="text-xs font-light">55k</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-comment text-2xl"></i><span class="text-xs font-light">400</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-solid fa-share text-2xl"></i><span class="text-xs font-light">Share</span></div>
+                    </div>
+                    <div class="tiktok-ui-bottom">
+                        <div class="font-medium text-sm mb-1">@asmr_life</div>
+                        <div class="text-xs opacity-80 font-light">Whisper mode activated. #satisfying</div>
+                    </div>
+                </div>
+
+                <!-- Duplicate cards for seamless infinite loop -->
+                <!-- Duplicate 1: Storytime -->
+                <div class="phone-card bg-black shadow-hard group">
+                    <div class="w-full h-full flex items-center justify-center relative overflow-hidden">
+                        <img src="storytime.png" alt="Storyteller" class="absolute inset-0 w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                    </div>
+                    <div class="tiktok-ui-right">
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-heart text-2xl"></i><span class="text-xs font-light">12k</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-comment text-2xl"></i><span class="text-xs font-light">402</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-solid fa-share text-2xl"></i><span class="text-xs font-light">Share</span></div>
+                    </div>
+                    <div class="tiktok-ui-bottom">
+                        <div class="font-medium text-sm mb-1">@scary_stories</div>
+                        <div class="text-xs opacity-80 font-light">Wait for the end... used Culture Voices for the ghost voice #horror</div>
+                    </div>
+                </div>
+
+                <!-- Duplicate 2: Gaming -->
+                <div class="phone-card bg-black shadow-hard">
+                    <div class="w-full h-full flex items-center justify-center relative overflow-hidden">
+                        <img src="gaming.png" alt="Gaming" class="absolute inset-0 w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                    </div>
+                    <div class="tiktok-ui-right">
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-heart text-2xl"></i><span class="text-xs font-light">45k</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-comment text-2xl"></i><span class="text-xs font-light">1.2k</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-solid fa-share text-2xl"></i><span class="text-xs font-light">Share</span></div>
+                    </div>
+                    <div class="tiktok-ui-bottom">
+                        <div class="font-medium text-sm mb-1">@pro_gamer</div>
+                        <div class="text-xs opacity-80 font-light">No mic today so I cloned my voice. Can you tell?</div>
+                    </div>
+                </div>
+
+                <!-- Duplicate 3: Podcast -->
+                <div class="phone-card bg-black shadow-hard">
+                    <div class="w-full h-full flex items-center justify-center relative overflow-hidden">
+                        <img src="podcast.png" alt="Podcast" class="absolute inset-0 w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                    </div>
+                    <div class="tiktok-ui-right">
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-heart text-2xl"></i><span class="text-xs font-light">2k</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-comment text-2xl"></i><span class="text-xs font-light">89</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-solid fa-share text-2xl"></i><span class="text-xs font-light">Share</span></div>
+                    </div>
+                    <div class="tiktok-ui-bottom">
+                        <div class="font-medium text-sm mb-1">@daily_talks</div>
+                        <div class="text-xs opacity-80 font-light">New episode out now! Intro generated with AI.</div>
+                    </div>
+                </div>
+
+                <!-- Duplicate 4: Reaction -->
+                <div class="phone-card bg-black shadow-hard">
+                    <div class="w-full h-full flex items-center justify-center relative overflow-hidden">
+                        <img src="meme-dub.png" alt="Meme Creator" class="absolute inset-0 w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                    </div>
+                    <div class="tiktok-ui-right">
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-heart text-2xl"></i><span class="text-xs font-light">89k</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-comment text-2xl"></i><span class="text-xs font-light">3k</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-solid fa-share text-2xl"></i><span class="text-xs font-light">Share</span></div>
+                    </div>
+                    <div class="tiktok-ui-bottom">
+                        <div class="font-medium text-sm mb-1">@meme_lord</div>
+                        <div class="text-xs opacity-80 font-light">This audio is viral rn. Use the template!</div>
+                    </div>
+                </div>
+
+                <!-- Duplicate 5: ASMR -->
+                <div class="phone-card bg-black shadow-hard">
+                    <div class="w-full h-full flex items-center justify-center relative overflow-hidden">
+                        <img src="crisp-audio.png" alt="Crisp Audio" class="absolute inset-0 w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                    </div>
+                    <div class="tiktok-ui-right">
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-heart text-2xl"></i><span class="text-xs font-light">55k</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-regular fa-comment text-2xl"></i><span class="text-xs font-light">400</span></div>
+                        <div class="flex flex-col items-center"><i class="fa-solid fa-share text-2xl"></i><span class="text-xs font-light">Share</span></div>
+                    </div>
+                    <div class="tiktok-ui-bottom">
+                        <div class="font-medium text-sm mb-1">@asmr_life</div>
+                        <div class="text-xs opacity-80 font-light">Whisper mode activated. #satisfying</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-center items-center mt-12 relative z-20">
+            <button onclick="openCloneModal()" class="bg-black text-white text-lg font-heading font-medium px-8 py-4 rounded-full shadow-hard hover:bg-neon-purple hover:text-black hover:-translate-y-1 hover:shadow-hard-hover transition-all">
+                Clone My Voice Now
+            </button>
+        </div>
+    </section>
+
+    <!-- MARQUEE -->
+    <div class="bg-black text-white py-4 border-y border-black rotate-1 transform scale-105 z-20 relative">
+        <div class="marquee-container">
+            <div class="marquee-content font-heading font-normal text-xl uppercase tracking-widest">
+                No Mic Needed • Sounds Like You • Internet Native • Scale Your Content • No Mic Needed • Sounds Like You • Internet Native • Scale Your Content •
+                No Mic Needed • Sounds Like You • Internet Native • Scale Your Content • No Mic Needed • Sounds Like You • Internet Native • Scale Your Content •
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 02: WHY -->
+    <section class="pt-8 pb-16 px-4 max-w-7xl mx-auto">
+        <h2 class="font-heading font-light text-4xl md:text-6xl text-center mb-6 tracking-tight">
+            WHY THE <span class="font-medium border-b-2 border-black">INTERNET</span><br>LOVES THIS
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Card 1 -->
+            <div class="feature-card bg-white border border-black rounded-2xl p-8 shadow-hard hover:-translate-y-2 hover:shadow-[8px_8px_0px_0px_rgba(168,85,247,1)] transition-all duration-300">
+                <div class="text-2xl mb-6 bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center border border-black text-black">
+                    <i class="fa-solid fa-music"></i>
+                </div>
+                <h3 class="font-heading font-medium text-xl mb-3">TikTok Voiceovers</h3>
+                <p class="font-sans text-gray-600 font-light leading-relaxed">Script it. Generate it. Post it. No more recording under a blanket at 2 AM.</p>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="feature-card bg-white border border-black rounded-2xl p-8 shadow-hard hover:-translate-y-2 hover:shadow-[8px_8px_0px_0px_rgba(190,242,100,1)] transition-all duration-300">
+                <div class="text-2xl mb-6 bg-green-100 w-12 h-12 rounded-full flex items-center justify-center border border-black text-black">
+                    <i class="fa-solid fa-microphone"></i>
+                </div>
+                <h3 class="font-heading font-medium text-xl mb-3">Podcast Intros</h3>
+                <p class="font-sans text-gray-600 font-light leading-relaxed">Consistent intros every time. Even if you have a cold. Even if you lost your voice.</p>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="feature-card bg-white border border-black rounded-2xl p-8 shadow-hard hover:-translate-y-2 hover:shadow-[8px_8px_0px_0px_rgba(244,114,182,1)] transition-all duration-300">
+                <div class="text-2xl mb-6 bg-pink-100 w-12 h-12 rounded-full flex items-center justify-center border border-black text-black">
+                    <i class="fa-solid fa-handshake"></i>
+                </div>
+                <h3 class="font-heading font-medium text-xl mb-3">Brand Deals</h3>
+                <p class="font-sans text-gray-600 font-light leading-relaxed">Need an ad read? Generate 3 variations in 10 seconds. Brands love speed.</p>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="feature-card lg:col-span-2 bg-electric-blue border border-black rounded-2xl p-8 shadow-hard relative overflow-hidden group">
+                <div class="relative z-10 text-white">
+                    <div class="text-2xl mb-6 bg-black w-12 h-12 rounded-full flex items-center justify-center border border-white text-white">
+                        <i class="fa-solid fa-user-group"></i>
+                    </div>
+                    <h3 class="font-heading font-medium text-xl mb-3">Multiple Characters</h3>
+                    <p class="font-sans text-blue-50 font-light text-lg leading-relaxed">Running a storytime channel? Clone different tones. Be the narrator, the villain, and the bestie. All you.</p>
+                </div>
+                <div class="absolute right-0 bottom-0 opacity-10 transform translate-x-1/4 translate-y-1/4 group-hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-masks-theater text-9xl"></i>
+                </div>
+            </div>
+
+            <!-- Card 5 -->
+            <div class="feature-card bg-slime-green border border-black rounded-2xl p-8 shadow-hard flex flex-col justify-center items-center text-center">
+                <h3 class="font-heading font-bold text-2xl mb-2">NO MIC.</h3>
+                <h3 class="font-heading font-bold text-2xl mb-2">NO STRESS.</h3>
+                <div class="text-3xl mt-2 animate-bounce">
+                    <i class="fa-solid fa-peace"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 03: HOW IT WORKS -->
+    <section class="how-it-works-section py-24 border-t border-black bg-white">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="bg-black text-white inline-block px-4 py-1 rounded-full font-heading font-medium text-xs mb-8 rotate-2 uppercase tracking-widest">The Process</div>
+
+            <div class="space-y-12 md:space-y-0 md:flex md:justify-between md:items-start gap-8">
+                <!-- Step 1 -->
+                <div class="step-item flex-1 text-center md:text-left">
+                    <div class="w-full h-48 bg-gray-50 border border-black rounded-xl mb-6 relative overflow-hidden flex items-center justify-center">
+                        <i class="fa-solid fa-cloud-arrow-up text-5xl text-gray-300"></i>
+                        <div class="absolute inset-0 bg-purple-100/50 translate-y-full step-fill-1 transition-transform"></div>
+                    </div>
+                    <h3 class="font-heading font-medium text-xl">1. Upload Voice</h3>
+                    <p class="text-sm font-sans font-light text-gray-500 mt-2">Just 30 seconds of audio. That's it.</p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="step-item flex-1 text-center md:text-left mt-8 md:mt-0">
+                    <div class="w-full h-48 bg-gray-50 border border-black rounded-xl mb-6 relative overflow-hidden p-6 flex items-center justify-center">
+                        <div id="typewriter-text" class="font-heading font-medium text-xl text-center leading-tight"></div>
+                    </div>
+                    <h3 class="font-heading font-medium text-xl">2. Type Your Script</h3>
+                    <p class="text-sm font-sans font-light text-gray-500 mt-2">Write like you speak. We handle the cadence.</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="step-item flex-1 text-center md:text-left mt-8 md:mt-0">
+                    <div class="w-full h-48 bg-gray-50 border border-black rounded-xl mb-6 relative overflow-hidden flex items-center justify-center group cursor-pointer">
+                        <div class="bg-slime-green border border-black rounded-full w-16 h-16 flex items-center justify-center shadow-hard group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-download"></i>
+                        </div>
+                    </div>
+                    <h3 class="font-heading font-medium text-xl">3. Export & Post</h3>
+                    <p class="text-sm font-sans font-light text-gray-500 mt-2">WAV or MP3. Ready for Premiere or CapCut.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 03.5: INTERACTIVE PLAYGROUND -->
+    <section class="py-24 px-4 bg-white border-t border-black">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="font-heading font-light text-4xl md:text-6xl text-center mb-16 tracking-tight">
+                TYPE. <span class="font-medium">CLICK.</span> LISTEN.
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Demo Card 1 -->
+                <div class="demo-card bg-base-cream border border-black rounded-2xl p-6 shadow-hard relative group">
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full border border-black bg-purple-200 overflow-hidden">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Story&backgroundColor=transparent" alt="Avatar">
+                            </div>
+                            <div>
+                                <h3 class="font-heading font-medium text-lg">Storyteller</h3>
+                                <p class="text-xs text-gray-500 font-mono">Narrative Mode</p>
+                            </div>
+                        </div>
+                        <button class="play-btn w-12 h-12 rounded-full border border-black bg-white flex items-center justify-center hover:bg-black hover:text-white transition-all shadow-sm active:translate-y-1">
+                            <i class="fa-solid fa-play ml-1"></i>
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <input type="text" value="The door creaked open slowly..." class="w-full bg-transparent border-b border-gray-300 focus:border-black py-2 font-sans font-light text-lg focus:outline-none transition-colors pr-8">
+                        <i class="fa-solid fa-pen absolute right-0 bottom-3 text-xs text-gray-400"></i>
+                    </div>
+                </div>
+
+                <!-- Demo Card 2 -->
+                <div class="demo-card bg-base-cream border border-black rounded-2xl p-6 shadow-hard relative group">
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full border border-black bg-green-200 overflow-hidden">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Hype&backgroundColor=transparent" alt="Avatar">
+                            </div>
+                            <div>
+                                <h3 class="font-heading font-medium text-lg">Hype Beast</h3>
+                                <p class="text-xs text-gray-500 font-mono">Energetic Mode</p>
+                            </div>
+                        </div>
+                        <button class="play-btn w-12 h-12 rounded-full border border-black bg-white flex items-center justify-center hover:bg-black hover:text-white transition-all shadow-sm active:translate-y-1">
+                            <i class="fa-solid fa-play ml-1"></i>
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <input type="text" value="Yo! This gameplay is insane!" class="w-full bg-transparent border-b border-gray-300 focus:border-black py-2 font-sans font-light text-lg focus:outline-none transition-colors pr-8">
+                        <i class="fa-solid fa-pen absolute right-0 bottom-3 text-xs text-gray-400"></i>
+                    </div>
+                </div>
+
+                <!-- Demo Card 3 -->
+                <div class="demo-card bg-base-cream border border-black rounded-2xl p-6 shadow-hard relative group">
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full border border-black bg-blue-200 overflow-hidden">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Chill&backgroundColor=transparent" alt="Avatar">
+                            </div>
+                            <div>
+                                <h3 class="font-heading font-medium text-lg">Chill Vibes</h3>
+                                <p class="text-xs text-gray-500 font-mono">ASMR Mode</p>
+                            </div>
+                        </div>
+                        <button class="play-btn w-12 h-12 rounded-full border border-black bg-white flex items-center justify-center hover:bg-black hover:text-white transition-all shadow-sm active:translate-y-1">
+                            <i class="fa-solid fa-play ml-1"></i>
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <input type="text" value="Just relax and close your eyes." class="w-full bg-transparent border-b border-gray-300 focus:border-black py-2 font-sans font-light text-lg focus:outline-none transition-colors pr-8">
+                        <i class="fa-solid fa-pen absolute right-0 bottom-3 text-xs text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 04: DEMO -->
+    <section class="py-24 px-4 bg-gray-50 border-y border-black transition-colors duration-500" id="demo-bg">
+        <div class="max-w-3xl mx-auto text-center">
+            <h2 class="font-heading font-light text-4xl md:text-6xl mb-4">HEAR THE SWITCH</h2>
+            <p class="font-sans font-light text-gray-600 mb-12">Toggle to see the vibe shift.</p>
+
+            <div class="relative bg-white border border-black rounded-2xl p-8 md:p-12 shadow-hard overflow-hidden">
+                <!-- Toggle Switch -->
+                <div class="flex justify-center mb-8">
+                    <div class="bg-gray-100 p-1 rounded-full border border-black flex relative cursor-pointer" id="voice-toggle">
+                        <div class="w-1/2 h-full absolute top-0 left-0 bg-white rounded-full border border-black shadow-sm transition-transform duration-300" id="toggle-knob" style="width: 50%; height: 100%; transform: scale(0.9) translateX(2px);"></div>
+                        <div class="z-10 px-6 py-2 font-heading font-medium text-sm relative select-none" id="label-orig">ORIGINAL</div>
+                        <div class="z-10 px-6 py-2 font-heading font-medium text-sm text-gray-400 relative select-none" id="label-clone">CLONED</div>
+                    </div>
+                </div>
+
+                <!-- Visualization -->
+                <div class="flex items-center justify-center gap-2 h-32" id="demo-bars">
+                    <!-- Bars generated via JS -->
+                </div>
+
+                <div class="mt-8 font-mono text-xs text-gray-400 uppercase tracking-widest">Processing Audio...</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 07: CTA -->
+    <section id="cta" class="py-24 px-4 bg-neon-purple border-t border-black relative overflow-hidden">
+        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiMwMDAiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9zdmc+')] opacity-20"></div>
+
+        <div class="max-w-2xl mx-auto relative z-10 bg-white border border-black rounded-3xl p-8 md:p-12 shadow-[10px_10px_0px_0px_#000] text-center">
+            <h2 class="font-heading font-medium text-4xl md:text-5xl mb-6 uppercase tracking-tight">
+                Clone Your Voice.<br>Start Now.
+            </h2>
+            <p class="font-sans font-light text-gray-600 text-lg mb-8 max-w-lg mx-auto">
+                Join thousands of creators using AI-powered voice cloning. Create professional content faster than ever.
+            </p>
+
+            <button onclick="openSignupModal()" class="w-full bg-black text-white font-heading font-medium text-xl py-5 rounded-xl shadow-hard hover:bg-slime-green hover:text-black hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-hard-hover transition-all mb-4">
+                Get Started Free
+            </button>
+
+            <p class="text-sm text-gray-500 font-light">
+                No credit card required • 30-day free trial
+            </p>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="bg-black text-white py-12 border-t border-white/10">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-8">
+            <div class="text-center md:text-left">
+                <img src="logo.png" alt="Culture Voices" class="h-16 w-auto mx-auto md:mx-0 mb-3 brightness-0 invert">
+                <p class="text-gray-400 text-sm font-light">Voice is the next content format.</p>
+            </div>
+
+            <div class="flex gap-6">
+                <a href="#" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white hover:text-black transition-all hover:-translate-y-1"><i class="fa-brands fa-tiktok"></i></a>
+                <a href="#" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white hover:text-black transition-all hover:-translate-y-1"><i class="fa-brands fa-instagram"></i></a>
+                <a href="#" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white hover:text-black transition-all hover:-translate-y-1"><i class="fa-brands fa-youtube"></i></a>
+            </div>
+        </div>
+        <div class="text-center mt-12 text-gray-600 text-xs font-light">
+            © 2024 Culture Voices. Built for Creators.
+        </div>
+    </footer>
+
+    <!-- GSAP Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/TextPlugin.min.js"></script>
+
+    <script>
+        // Force scroll to top - immediate execution
+        history.scrollRestoration = 'manual';
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+
+        // Also on DOM ready
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                window.scrollTo(0, 0);
+                document.documentElement.scrollTop = 0;
+                document.body.scrollTop = 0;
+            }, 0);
+        });
+
+        // And on full page load
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                window.scrollTo(0, 0);
+                document.documentElement.scrollTop = 0;
+                document.body.scrollTop = 0;
+            }, 100);
+        });
+    </script>
+
+    <script src="app.js"></script>
+</body>
+</html>
