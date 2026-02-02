@@ -171,6 +171,11 @@ async function transcribeAudio(audioFilePath, mimeType = null) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Determine if running in serverless environment (Vercel)
+const IS_SERVERLESS = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
+const UPLOAD_DIR = IS_SERVERLESS ? '/tmp/uploads' : path.join(__dirname, 'uploads');
+const GENERATED_DIR = IS_SERVERLESS ? '/tmp/generated' : path.join(__dirname, 'generated');
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -282,7 +287,7 @@ function getFileExtension(mimeType) {
 
 // Configure multer for file uploads with enhanced format support
 const upload = multer({
-    dest: 'uploads/',
+    dest: UPLOAD_DIR,
     limits: {
         fileSize: 10 * 1024 * 1024 // 10MB limit
     },
@@ -748,13 +753,12 @@ app.post('/api/voice/generate', async (req, res) => {
         });
 
         // Save audio file
-        const outputDir = path.join(__dirname, 'generated');
-        if (!fs.existsSync(outputDir)) {
-            fs.mkdirSync(outputDir);
+        if (!fs.existsSync(GENERATED_DIR)) {
+            fs.mkdirSync(GENERATED_DIR, { recursive: true });
         }
 
         const filename = `voice-${Date.now()}.mp3`;
-        const filepath = path.join(outputDir, filename);
+        const filepath = path.join(GENERATED_DIR, filename);
         fs.writeFileSync(filepath, response.data);
 
         console.log('Speech generated successfully:', filename);
@@ -775,7 +779,7 @@ app.post('/api/voice/generate', async (req, res) => {
 });
 
 // Serve generated audio files
-app.use('/generated', express.static(path.join(__dirname, 'generated')));
+app.use('/generated', express.static(GENERATED_DIR));
 
 // Get list of available voices (user's models)
 // Endpoint: GET https://api.fish.audio/model
@@ -964,22 +968,25 @@ app.use((err, req, res, next) => {
 });
 
 // Create necessary directories
-const dirs = ['uploads', 'generated'];
-dirs.forEach(dir => {
-    const dirPath = path.join(__dirname, dir);
-    if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath);
+[UPLOAD_DIR, GENERATED_DIR].forEach(dir => {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
     }
 });
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`🚀 Culture Voices server running on http://localhost:${PORT}`);
-    console.log(`📁 Serving static files from: ${__dirname}`);
-    console.log(`🎤 Fish Audio API ${FISH_AUDIO_API_KEY ? 'configured' : 'NOT configured'}`);
+// Export the Express app for Vercel serverless functions
+module.exports = app;
 
-    if (!FISH_AUDIO_API_KEY) {
-        console.warn('⚠️  WARNING: FISH_AUDIO_API_KEY not found in environment variables');
-        console.warn('   Please create a .env file with your Fish Audio API key');
-    }
-});
+// Start server only when not in serverless environment (local development)
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`🚀 Culture Voices server running on http://localhost:${PORT}`);
+        console.log(`📁 Serving static files from: ${__dirname}`);
+        console.log(`🎤 Fish Audio API ${FISH_AUDIO_API_KEY ? 'configured' : 'NOT configured'}`);
+
+        if (!FISH_AUDIO_API_KEY) {
+            console.warn('⚠️  WARNING: FISH_AUDIO_API_KEY not found in environment variables');
+            console.warn('   Please create a .env file with your Fish Audio API key');
+        }
+    });
+}
