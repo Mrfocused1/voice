@@ -6,8 +6,10 @@ window.scrollTo(0, 0);
 document.documentElement.scrollTop = 0;
 document.body.scrollTop = 0;
 
-// Configuration
-const API_URL = 'http://localhost:3000/api';
+// Configuration - Auto-detect API URL based on environment
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3000/api'
+    : `${window.location.origin}/api`;
 
 // Global state
 let currentModelId = null;
