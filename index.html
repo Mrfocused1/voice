@@ -969,6 +969,37 @@
                 document.body.scrollTop = 0;
             }, 100);
         });
+
+        // Mobile video autoplay fix - play videos when they come into view
+        document.addEventListener('DOMContentLoaded', function() {
+            const videos = document.querySelectorAll('video[autoplay]');
+
+            // Try to play immediately (works on some browsers)
+            videos.forEach(video => {
+                video.play().catch(err => {
+                    // Autoplay failed, will use Intersection Observer
+                    console.log('Autoplay prevented, using intersection observer');
+                });
+            });
+
+            // Use Intersection Observer for mobile browsers that block autoplay
+            const observerOptions = {
+                threshold: 0.5 // Play when 50% of video is visible
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const video = entry.target;
+                    if (entry.isIntersecting) {
+                        video.play().catch(err => console.log('Play failed:', err));
+                    } else {
+                        video.pause();
+                    }
+                });
+            }, observerOptions);
+
+            videos.forEach(video => observer.observe(video));
+        });
     </script>
 
     <script src="app.js"></script>
